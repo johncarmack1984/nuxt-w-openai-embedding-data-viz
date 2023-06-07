@@ -1,37 +1,40 @@
 <script setup lang="ts">
-const config = useRuntimeConfig();
-const string = "This string has embeddings.";
-
-const { data, pending, error, refresh } = await useFetch<{
-  data: [{ object: string; index: number; embedding: number[] }];
-  model: string;
-  usage: { prompt_tokens: number; total_tokens: number };
-}>("https://api.openai.com/v1/embeddings", {
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${config.openAiApiKey}`,
-  },
-  method: "POST",
-  body: {
-    input: string,
-    model: "text-embedding-ada-002",
-  },
-  pick: ["data", "model", "usage"],
-});
+const input = ref("This is the way.");
+const { data, error, pending, query } = await useFetchEmbeddings(input.value);
 </script>
 
 <template>
   <div
-    class="w-screen h-screen bg-neutral-800 text-white flex flex-col justify-center"
+    class="w-screen min-h-screen dark:bg-neutral-800 dark:text-white p-5 flex flex-col justify-center"
   >
-    <input
-      class="text-center text-3xl text-bold mb-10 w-[80vw] bg-neutral-800 p-5 mx-auto"
-      :value="string"
-      disabled
-    />
+    <form
+      class="text-bold mb-10 w-full text-center mx-auto gap-2 flex flex-col"
+      @submit.prevent
+    >
+      <textarea
+        class="bg-neutral-100 dark:text-black p-5 block rounded-sm h-[5rem] disabled:text-neutral-400 disabled:bg-neutral-200"
+        placeholder="Submit a string to get embeddings..."
+        v-model="input"
+        disabled
+      />
+      <button class="rounded-sm py-3 px-5 bg-green-600" disabled>
+        Submit (coming soon)
+      </button>
+      <button class="rounded-sm py-3 px-5 bg-neutral-400" disabled>
+        Reset
+      </button>
+    </form>
+    <div>string: {{ input || "null" }}</div>
+    <div>submitted: {{ input === query }}</div>
+    <div>current: {{ query }}</div>
+    <div v-if="pending">pending</div>
+    <div v-if="error" class="text-red-500">{{ error }}</div>
+    <div v-if="!pending && !error">
+      embeddings returned: {{ data?.data[0].embedding.length }}
+    </div>
     <TheChart
       v-if="!pending && !error"
-      class="w-[80vw] h-[80vh] mx-auto"
+      class="w-full mx-auto"
       :data="{
         labels: data?.data[0].embedding,
         datasets: [
